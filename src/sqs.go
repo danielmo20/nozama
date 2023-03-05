@@ -1,6 +1,7 @@
 package nozama
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -8,7 +9,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
-func SendMessage(messageBody string, queueName string) error {
+func SendMessage(event interface{}, queueName string) error {
+
+	messageBytes, err := json.Marshal(event)
+
+	if err != nil {
+		log.Fatalf("Cannont json.Marshal this %v", event)
+	}
+
+	messageBody := string(messageBytes)
 
 	log.Printf("NOZAMA - Sending message %s", messageBody)
 

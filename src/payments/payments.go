@@ -2,22 +2,68 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
+	"log"
+	nozama "nozama/src"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-var nozama_orders_sqs_queue = "SQSOrders"
+const (
+	nozama_payments_dynamodb_table_name = "payments"
+	nozama_orders_sqs_queue             = "SQSOrders"
+)
 
 func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
-	for _, message := range sqsEvent.Records {
-		fmt.Printf("NOZAMA - The message %s for event source %s = %s \n", message.MessageId, message.EventSource, message.Body)
+
+	messageBody := sqsEvent.Records[0].Body
+
+	log.Printf("NOZAMA - event recieved: %s ", messageBody)
+
+	createOrderEvent, err := toCreateOrderEvent(messageBody)
+
+	if err != nil {
+		log.Fatalf("An error while parsing toCreateOrderEvent ")
+		return err
 	}
 
-	return nil
+	err = createPayment(createOrderEvent)
+
+	if err != nil {
+		log.Fatalf("An error while creating a Payment")
+		return err
+	}
+
+	return err
 }
 
 func main() {
 	lambda.Start(handler)
+}
+
+func toCreateOrderEvent(body string) (nozama.CreateOrderEvent, error) {
+	b := []byte(body)
+	var orderEvent nozama.CreateOrderEvent
+	err := json.Unmarshal(b, &orderEvent)
+	return orderEvent, err
+}
+
+func createPayment(createOrderEvent nozama.CreateOrderEvent) error {
+
+	var paymentItem nozama.PaymentItem
+
+	paymentItem.OrderID = createOrderEvent.OrderID
+	paymentItem.TotalPrice = createOrderEvent.TotalPrice
+	paymentItem.Status = nozama.PaymentStatusPending
+	paymentItem.PaymentID = nozama.GeneratePrimaryKey()
+
+	err := nozama.PutItem(paymentItem, nozama_payments_dynamodb_table_name)
+
+	if err != nil {
+		log.Fatalf("An error ocurred while placing order %s", err)
+		return err
+	}
+
+	return nil
 }
