@@ -8,14 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
-//const nozama_sqs_region = "us-east-2"
-//const nozama_sqs_profile = "default"
-
-var nozama_payments_sqs_queue = "SQSPayments"
-
-//var nozama_payments_sqs_url = "https://sqs.us-east-2.amazonaws.com/055154340090/SQSPayments"
-
-func SendMessage(messageBody string) error {
+func SendMessage(messageBody string, queueName string) error {
 
 	log.Printf("NOZAMA - Sending message %s", messageBody)
 
@@ -25,7 +18,7 @@ func SendMessage(messageBody string) error {
 
 	sqsClient := sqs.New(sqsSession)
 
-	sqsPaymentURL, err := GetQueueURL(nozama_payments_sqs_queue)
+	sqsPaymentURL, err := GetQueueURL(queueName)
 
 	if err != nil {
 		log.Printf("Failed to initialize new session: %v", err)

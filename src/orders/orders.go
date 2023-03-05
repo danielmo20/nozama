@@ -11,11 +11,16 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
+var nozama_payments_sqs_queue = "SQSPayments"
+
+const nozama_orders_dynamodb_table_name = "orders"
+
 func main() {
 	lambda.Start(handleNewOrder)
 }
 
 type CreateOrderRequest struct {
+	OrderID    string `json:"order_id"`
 	UserID     string `json:"user_id"`
 	Item       string `json:"item"`
 	Quantity   int    `json:"quantity"`
@@ -28,7 +33,10 @@ type CreateOrderEvent struct {
 }
 
 func handleNewOrder(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	log.Printf("Received req %#v", req)
+
+	if req.HTTPMethod != "POST" {
+		return clientHttpStatusResponse(http.StatusBadRequest, "An error occured trying to place the order")
+	}
 
 	orderRequest, err := getOrderRequest(req.Body)
 
@@ -36,17 +44,36 @@ func handleNewOrder(ctx context.Context, req events.APIGatewayProxyRequest) (eve
 		log.Printf("NOZAMA - Cannot get order request req %s", req.Body)
 	}
 
-	var orderEvent CreateOrderEvent
-	orderEvent.OrderID = "19870106"
-	orderEvent.TotalPrice = orderRequest.TotalPrice
+	orderEvent, err := createOrder(orderRequest)
+
+	if err != nil {
+		return clientHttpStatusResponse(http.StatusBadRequest, "An error occured trying to place the order")
+	}
 
 	err = sendPaymentEvent(orderEvent)
 
 	if err != nil {
 		return clientHttpStatusResponse(http.StatusBadRequest, "An error occured trying to place the order")
 	} else {
-		return clientHttpStatusResponse(http.StatusAccepted, "Order Created")
+		return clientHttpStatusResponse(http.StatusCreated, "Order Created")
 	}
+
+}
+
+func createOrder(newOrder CreateOrderRequest) (CreateOrderEvent, error) {
+	newOrder.OrderID = nozama.GeneratePrimaryKey()
+	err := nozama.PutItem(newOrder, nozama_orders_dynamodb_table_name)
+
+	if err != nil {
+		log.Fatalf("An error ocurred while placing order %s", err)
+		return CreateOrderEvent{}, err
+	}
+
+	var newOrderEvent CreateOrderEvent
+	newOrderEvent.OrderID = newOrder.OrderID
+	newOrderEvent.TotalPrice = newOrder.TotalPrice
+
+	return newOrderEvent, nil
 
 }
 
@@ -63,7 +90,7 @@ func clientHttpStatusResponse(statusCode int, message string) (events.APIGateway
 }
 
 func sendPaymentEvent(orderEvent CreateOrderEvent) error {
-	err := nozama.SendMessage(orderEvent.OrderID)
+	err := nozama.SendMessage(orderEvent.OrderID, nozama_payments_sqs_queue)
 	if err != nil {
 		log.Printf("OnOrderCreatedException could not send payment event %s", err)
 	}
