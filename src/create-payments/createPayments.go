@@ -4,15 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"log"
-	nozama "nozama/src"
+	nozama "nozama/src/shared"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-)
-
-const (
-	nozama_payments_dynamodb_table_name = "payments"
-	nozama_orders_sqs_queue             = "SQSOrders"
 )
 
 func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
@@ -58,7 +53,7 @@ func createPayment(createOrderEvent nozama.CreateOrderEvent) error {
 	paymentItem.Status = nozama.PaymentStatusPending
 	paymentItem.PaymentID = nozama.GeneratePrimaryKey()
 
-	err := nozama.PutItem(paymentItem, nozama_payments_dynamodb_table_name)
+	err := nozama.PutItem(paymentItem, nozama.PaymentsDynamoDBTableName)
 
 	if err != nil {
 		log.Fatalf("An error ocurred while placing order %s", err)
