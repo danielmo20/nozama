@@ -40,7 +40,7 @@ func handleUpdatePayment(ctx context.Context, req events.APIGatewayProxyRequest)
 	if err != nil {
 		return nozama.HttpResponse(http.StatusBadRequest, httpErrorMessage)
 	} else {
-		return nozama.HttpResponse(http.StatusCreated, paymentEvent)
+		return nozama.HttpResponse(http.StatusOK, paymentEvent)
 	}
 
 }
