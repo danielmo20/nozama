@@ -27,13 +27,13 @@ func handleNewOrder(ctx context.Context, req events.APIGatewayProxyRequest) (eve
 		return nozama.HttpResponse(http.StatusBadRequest, httpErrorMessage)
 	}
 
-	orderRequest, err := toOrderRequest(req.Body)
+	orderRequest, err := ToOrderRequest(req.Body)
 
 	if err != nil {
 		log.Printf("NOZAMA - Cannot get order request req %s", req.Body)
 	}
 
-	orderEvent, err := createOrder(orderRequest)
+	orderEvent, err := CreateOrder(orderRequest)
 
 	if err != nil {
 		return nozama.HttpResponse(http.StatusBadRequest, httpErrorMessage)
@@ -49,7 +49,7 @@ func handleNewOrder(ctx context.Context, req events.APIGatewayProxyRequest) (eve
 
 }
 
-func createOrder(newOrderRequest nozama.CreateOrderRequest) (nozama.CreateOrderEvent, error) {
+func CreateOrder(newOrderRequest nozama.CreateOrderRequest) (nozama.CreateOrderEvent, error) {
 
 	var orderItem nozama.OrderItem
 
@@ -83,7 +83,7 @@ func sendPaymentEvent(orderEvent nozama.CreateOrderEvent) error {
 	return err
 }
 
-func toOrderRequest(body string) (nozama.CreateOrderRequest, error) {
+func ToOrderRequest(body string) (nozama.CreateOrderRequest, error) {
 	b := []byte(body)
 	var orderEvent nozama.CreateOrderRequest
 	err := json.Unmarshal(b, &orderEvent)

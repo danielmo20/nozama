@@ -126,6 +126,7 @@ func PutItem(newRecord interface{}, tableName string) error {
 	return err
 }
 
+// Generates a UUID using the Google-uuid import
 func GeneratePrimaryKey() string {
 	return uuid.NewString()
 }

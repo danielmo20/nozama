@@ -16,7 +16,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 
 	log.Printf("NOZAMA - event recieved: %s ", messageBody)
 
-	createOrderEvent, err := toCreateOrderEvent(messageBody)
+	createOrderEvent, err := ToCreateOrderEvent(messageBody)
 
 	if err != nil {
 		log.Fatalf("An error while parsing toCreateOrderEvent ")
@@ -37,7 +37,7 @@ func main() {
 	lambda.Start(handler)
 }
 
-func toCreateOrderEvent(body string) (nozama.CreateOrderEvent, error) {
+func ToCreateOrderEvent(body string) (nozama.CreateOrderEvent, error) {
 	b := []byte(body)
 	var orderEvent nozama.CreateOrderEvent
 	err := json.Unmarshal(b, &orderEvent)
