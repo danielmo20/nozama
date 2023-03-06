@@ -11,17 +11,13 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-var nozama_payments_sqs_queue = "SQSPayments"
-
-const nozama_orders_dynamodb_table_name = "orders"
-
 func main() {
-	lambda.Start(handleNewOrder)
+	lambda.Start(handleCreateOrder)
 }
 
-func handleNewOrder(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handleCreateOrder(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 
-	var httpErrorMessage = nozama.HttpMessageResponse{Message: "An error occured trying to placte the oreder"}
+	var httpErrorMessage = nozama.HttpMessageResponse{Message: "An error occurred trying to placing the order"}
 
 	if req.HTTPMethod != http.MethodPost {
 		return nozama.HttpResponse(http.StatusBadRequest, httpErrorMessage)
@@ -30,7 +26,8 @@ func handleNewOrder(ctx context.Context, req events.APIGatewayProxyRequest) (eve
 	orderRequest, err := ToOrderRequest(req.Body)
 
 	if err != nil {
-		log.Printf("NOZAMA - Cannot get order request req %s", req.Body)
+		log.Printf("handleCreateOrder: Cannot parse order request req %s", req.Body)
+		return nozama.HttpResponse(http.StatusBadRequest, httpErrorMessage)
 	}
 
 	orderEvent, err := CreateOrder(orderRequest)
@@ -60,10 +57,10 @@ func CreateOrder(newOrderRequest nozama.CreateOrderRequest) (nozama.CreateOrderE
 	orderItem.Status = nozama.OrderStatusIncomplete
 	orderItem.OrderID = nozama.GeneratePrimaryKey()
 
-	err := nozama.PutItem(orderItem, nozama_orders_dynamodb_table_name)
+	err := nozama.PutItem(orderItem, nozama.OrdersDynamoDBTableName)
 
 	if err != nil {
-		log.Fatalf("An error ocurred while placing order %s", err)
+		log.Printf("CreateOrder: An error ocurred while placing order. Error %s", err)
 		return nozama.CreateOrderEvent{}, err
 	}
 
@@ -76,9 +73,9 @@ func CreateOrder(newOrderRequest nozama.CreateOrderRequest) (nozama.CreateOrderE
 }
 
 func sendPaymentEvent(orderEvent nozama.CreateOrderEvent) error {
-	err := nozama.SendMessage(orderEvent, nozama_payments_sqs_queue)
+	err := nozama.SendMessage(orderEvent, nozama.PaymentsSQSQueue)
 	if err != nil {
-		log.Printf("OnOrderCreatedException could not send payment event %s", err)
+		log.Printf("sendPaymentEvent: could not send payment event %s", err)
 	}
 	return err
 }

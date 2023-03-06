@@ -11,23 +11,23 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
+func handleUpdateOrder(ctx context.Context, sqsEvent events.SQSEvent) error {
 
 	messageBody := sqsEvent.Records[0].Body
 
-	log.Printf("NOZAMA - event recieved: %s ", messageBody)
+	log.Printf("handleUpdateOrder: SQS Event received: %s ", messageBody)
 
-	updatePaymentEvent, err := toUpdatePaymentEvent(messageBody)
+	updatePaymentEvent, err := ToUpdatePaymentEvent(messageBody)
 
 	if err != nil {
-		log.Fatalf("An error while parsing toUpdatePaymentEvent ")
+		log.Printf("handleUpdateOrder: Error %s", err)
 		return err
 	}
 
-	err = updateOrder(updatePaymentEvent)
+	err = UpdateOrder(updatePaymentEvent)
 
 	if err != nil {
-		log.Fatalf("An error while creating a Payment")
+		log.Printf("handleUpdateOrder: Error %s", err)
 		return err
 	}
 
@@ -35,26 +35,26 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 }
 
 func main() {
-	lambda.Start(handler)
+	lambda.Start(handleUpdateOrder)
 }
 
-func toUpdatePaymentEvent(body string) (nozama.UpdatedPaymentEvent, error) {
+func ToUpdatePaymentEvent(body string) (nozama.UpdatedPaymentEvent, error) {
 	b := []byte(body)
 	var paymentEvent nozama.UpdatedPaymentEvent
 	err := json.Unmarshal(b, &paymentEvent)
 	return paymentEvent, err
 }
 
-func updateOrder(updatePaymentEvent nozama.UpdatedPaymentEvent) error {
+func UpdateOrder(updatePaymentEvent nozama.UpdatedPaymentEvent) error {
 
 	orderItem, err := nozama.GetOrderByID(updatePaymentEvent.OrderID)
 
 	if err != nil {
-		log.Fatalf("NOZAMA - An error ocurred while updating the order %s", err)
+		log.Printf("UpdateOrder: An error ocurred while updating the order %s", err)
 		return err
 	}
 
-	log.Printf("NOZAMA - Moving Order %s from %d to paymentEvent.Status %d",
+	log.Printf("UpdateOrder: Moving Order %s from %s to paymentEvent.Status %s",
 		orderItem.OrderID, orderItem.Status, updatePaymentEvent.Status)
 	switch updatePaymentEvent.Status {
 	case nozama.PaymentStatusSuccess:
@@ -76,7 +76,7 @@ func updateOrder(updatePaymentEvent nozama.UpdatedPaymentEvent) error {
 	err = nozama.PutItem(orderItem, nozama.OrdersDynamoDBTableName)
 
 	if err != nil {
-		log.Fatalf("NOZAMA - An error ocurred while placing order %s", err)
+		log.Printf("UpdateOrder: An error ocurred while placing order. Error %s", err)
 		return err
 	}
 

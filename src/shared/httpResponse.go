@@ -17,7 +17,7 @@ func HttpResponse(statusCode int, obj interface{}) (events.APIGatewayProxyRespon
 	objBytes, err := json.Marshal(obj)
 
 	if err != nil {
-		log.Fatalf("Cannont json.Marshal this %v", objBytes)
+		log.Printf("HttpResponse: Cannont json.Marshal this %v", objBytes)
 	}
 
 	message := string(objBytes)

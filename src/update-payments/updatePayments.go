@@ -23,13 +23,13 @@ func handleUpdatePayment(ctx context.Context, req events.APIGatewayProxyRequest)
 		return nozama.HttpResponse(http.StatusBadRequest, httpErrorMessage)
 	}
 
-	paymentRequest, err := toPaymentRequest(req.Body)
+	paymentRequest, err := ToPaymentRequest(req.Body)
 
 	if err != nil {
-		log.Printf("NOZAMA - Cannot resolve payment request req %s with error %s", req.Body, err)
+		log.Printf("handleUpdatePayment: Cannot resolve payment request req %s. Error %s", req.Body, err)
 	}
 
-	paymentEvent, err := updatePayment(paymentRequest)
+	paymentEvent, err := UpdatePayment(paymentRequest)
 
 	if err != nil {
 		return nozama.HttpResponse(http.StatusBadRequest, httpErrorMessage)
@@ -45,23 +45,23 @@ func handleUpdatePayment(ctx context.Context, req events.APIGatewayProxyRequest)
 
 }
 
-func updatePayment(paymentRequest nozama.ProcessPaymentRequest) (nozama.UpdatedPaymentEvent, error) {
+func UpdatePayment(paymentRequest nozama.ProcessPaymentRequest) (nozama.UpdatedPaymentEvent, error) {
 
 	paymentItem, err := nozama.GetPaymentByOrderID(paymentRequest.OrderID)
 
 	if err != nil {
-		log.Fatalf("An error ocurred while updating payment. Error: %s", err)
+		log.Printf("UpdatePayment: An error ocurred while retrieving payment. Error: %s", err)
 		return nozama.UpdatedPaymentEvent{}, err
 	}
 
-	log.Printf("NOZAMA - Moving Payment %s from %s to %s",
+	log.Printf("UpdatePayment: Moving Payment %s from %s to %s",
 		paymentItem.PaymentID, paymentItem.Status, paymentRequest.Status)
 	paymentItem.Status = paymentRequest.Status
 
 	err = nozama.PutItem(paymentItem, nozama.PaymentsDynamoDBTableName)
 
 	if err != nil {
-		log.Fatalf("An error ocurred while updating payment. Error: %s", err)
+		log.Printf("UpdatePayment: An error ocurred while updating payment. Error: %s", err)
 		return nozama.UpdatedPaymentEvent{}, err
 	}
 
@@ -76,19 +76,19 @@ func updatePayment(paymentRequest nozama.ProcessPaymentRequest) (nozama.UpdatedP
 func sendPaymentEvent(newUpdatePaymentEvent nozama.UpdatedPaymentEvent) error {
 	err := nozama.SendMessage(newUpdatePaymentEvent, nozama.OrdersSQSQueue)
 	if err != nil {
-		log.Printf("OnPaymentUpdatedException could not send UpdatePaymentEvent %s", err)
+		log.Printf("sendPaymentEvent: could not send UpdatePaymentEvent. Error %s", err)
 	}
 
 	return err
 }
 
-func toPaymentRequest(body string) (nozama.ProcessPaymentRequest, error) {
+func ToPaymentRequest(body string) (nozama.ProcessPaymentRequest, error) {
 	b := []byte(body)
 	var paymentRequest nozama.ProcessPaymentRequest
 	err := json.Unmarshal(b, &paymentRequest)
 
 	if err != nil {
-		log.Fatalf("An error ocurred while UnMarshal payment Body: %s. Error: %s",
+		log.Printf("ToPaymentRequest: An error ocurred while UnMarshal payment Body: %s. Error: %s",
 			body, err)
 		return nozama.ProcessPaymentRequest{}, err
 	}

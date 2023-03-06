@@ -14,12 +14,12 @@ func SendMessage(event interface{}, queueName string) error {
 	messageBytes, err := json.Marshal(event)
 
 	if err != nil {
-		log.Fatalf("Cannont json.Marshal this %v", event)
+		log.Printf("SendMessage: Cannont json.Marshal this %v", event)
 	}
 
 	messageBody := string(messageBytes)
 
-	log.Printf("NOZAMA - Sending message %s", messageBody)
+	log.Printf("SendMessage: Sending message %s", messageBody)
 
 	sqsSession := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
@@ -30,17 +30,17 @@ func SendMessage(event interface{}, queueName string) error {
 	sqsPaymentURL, err := GetQueueURL(queueName)
 
 	if err != nil {
-		log.Printf("Failed to initialize new session: %v", err)
+		log.Printf("SendMessage: failed to initialize new session: %v", err)
 		return err
 	}
 
-	result, err := sqsClient.SendMessage(&sqs.SendMessageInput{
+	_, err = sqsClient.SendMessage(&sqs.SendMessageInput{
 		QueueUrl:    &sqsPaymentURL,
 		MessageBody: aws.String(messageBody),
 	})
 
-	if result == nil {
-		log.Fatal("NOZAMA - Message not sent!")
+	if err != nil {
+		log.Printf("SendMessage: Message not sent! Error: %s", err)
 	}
 
 	return err
@@ -59,7 +59,8 @@ func GetQueueURL(queue string) (string, error) {
 	})
 
 	if err != nil {
-		log.Fatalln(err)
+		log.Printf("GetQueueURL: %s", err)
+		return "", err
 	}
 
 	return *qurlOut.QueueUrl, err

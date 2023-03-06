@@ -7,13 +7,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/google/uuid"
 )
 
-var dynamo *dynamodb.DynamoDB
+var Dynamo dynamodbiface.DynamoDBAPI
 
 func init() {
-	dynamo = connect()
+	Dynamo = connect()
 }
 
 func connect() (db *dynamodb.DynamoDB) {
@@ -30,32 +31,28 @@ func GetPaymentByOrderID(orderID string) (PaymentItem, error) {
 	_, err := uuid.Parse(orderID)
 
 	if err != nil {
-		log.Fatalf("orderID invalid %s", err)
+		log.Printf("GetPaymentByOrderID: orderID %s invalid %s", orderID, err)
 		return PaymentItem{}, err
 	}
 
-	result, err := dynamo.Query(&dynamodb.QueryInput{
+	result, err := Dynamo.Query(&dynamodb.QueryInput{
 		TableName: aws.String(PaymentsDynamoDBTableName),
 		IndexName: aws.String("order_id-index"),
-		KeyConditions: map[string]*dynamodb.Condition{
-			"order_id": {
-				ComparisonOperator: aws.String("EQ"),
-				AttributeValueList: []*dynamodb.AttributeValue{
-					{
-						S: aws.String(orderID),
-					},
-				},
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":orderId": {
+				S: aws.String(orderID),
 			},
 		},
+		KeyConditionExpression: aws.String("order_id = :orderId"),
 	})
 
 	if err != nil {
-		log.Fatalf("An error ocurred while GetPaymentByOrderID %s. Error: %s", orderID, err)
+		log.Printf("GetPaymentByOrderID: orderId %s. Error: %s", orderID, err)
 		return PaymentItem{}, err
 	}
 
 	if result.Items == nil && result.Items[0] == nil {
-		log.Fatalf("NOZAMA - GetPaymentByOrderID. Error: orderID %s doesn't exist", orderID)
+		log.Printf("GetPaymentByOrderID: orderID %s doesn't exist", orderID)
 		return PaymentItem{}, err
 	}
 
@@ -64,7 +61,7 @@ func GetPaymentByOrderID(orderID string) (PaymentItem, error) {
 	err = dynamodbattribute.UnmarshalMap(result.Items[0], &paymentItem)
 
 	if err != nil {
-		log.Fatalf("An error ocurred while parsing PaymentItem %v. Error: %s", paymentItem, err)
+		log.Printf("GetPaymentByOrderID: an error ocurred while parsing PaymentItem %v. Error: %s", paymentItem, err)
 		return PaymentItem{}, err
 	}
 
@@ -76,11 +73,11 @@ func GetOrderByID(orderID string) (OrderItem, error) {
 	_, err := uuid.Parse(orderID)
 
 	if err != nil {
-		log.Fatalf("NOZAMA - orderID invalid %s", err)
+		log.Printf("GetOrderByID: orderID %s invalid. %s", orderID, err)
 		return OrderItem{}, err
 	}
 
-	result, err := dynamo.GetItem(&dynamodb.GetItemInput{
+	result, err := Dynamo.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(OrdersDynamoDBTableName),
 		Key: map[string]*dynamodb.AttributeValue{
 			"order_id": {
@@ -90,12 +87,12 @@ func GetOrderByID(orderID string) (OrderItem, error) {
 	})
 
 	if err != nil {
-		log.Fatalf("NOZAMA - An error ocurred while GetOrderByID %s. Error: %s", orderID, err)
+		log.Printf("GetOrderByID: %s. Error: %s", orderID, err)
 		return OrderItem{}, err
 	}
 
 	if result.Item == nil {
-		log.Fatalf("NOZAMA - GetOrderByID. Error: orderID %s doesn't exist", orderID)
+		log.Printf("GetOrderByID: orderID %s doesn't exist", orderID)
 		return OrderItem{}, err
 	}
 
@@ -104,7 +101,7 @@ func GetOrderByID(orderID string) (OrderItem, error) {
 	err = dynamodbattribute.UnmarshalMap(result.Item, &orderItem)
 
 	if err != nil {
-		log.Fatalf("NOZAMA - An error ocurred while parsing OrderItem %v. Error: %s", orderItem, err)
+		log.Printf("GetOrderByID: An error ocurred while parsing OrderItem %v. Error: %s", orderItem, err)
 		return OrderItem{}, err
 	}
 
@@ -122,7 +119,7 @@ func PutItem(newRecord interface{}, tableName string) error {
 		TableName: aws.String(tableName),
 	}
 
-	_, err = dynamo.PutItem(input)
+	_, err = Dynamo.PutItem(input)
 	return err
 }
 

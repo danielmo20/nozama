@@ -10,23 +10,23 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
+func handleCreatePayment(ctx context.Context, sqsEvent events.SQSEvent) error {
 
 	messageBody := sqsEvent.Records[0].Body
 
-	log.Printf("NOZAMA - event recieved: %s ", messageBody)
+	log.Printf("handleCreatePayment: event received: %s ", messageBody)
 
 	createOrderEvent, err := ToCreateOrderEvent(messageBody)
 
 	if err != nil {
-		log.Fatalf("An error while parsing toCreateOrderEvent ")
+		log.Printf("handleCreatePayment - An error while parsing message. Error %s", err)
 		return err
 	}
 
-	err = createPayment(createOrderEvent)
+	err = CreatePayment(createOrderEvent)
 
 	if err != nil {
-		log.Fatalf("An error while creating a Payment")
+		log.Printf("handleCreatePayment: An error while creating a Payment. Error %s", err)
 		return err
 	}
 
@@ -34,7 +34,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 }
 
 func main() {
-	lambda.Start(handler)
+	lambda.Start(handleCreatePayment)
 }
 
 func ToCreateOrderEvent(body string) (nozama.CreateOrderEvent, error) {
@@ -44,7 +44,7 @@ func ToCreateOrderEvent(body string) (nozama.CreateOrderEvent, error) {
 	return orderEvent, err
 }
 
-func createPayment(createOrderEvent nozama.CreateOrderEvent) error {
+func CreatePayment(createOrderEvent nozama.CreateOrderEvent) error {
 
 	var paymentItem nozama.PaymentItem
 
@@ -56,7 +56,7 @@ func createPayment(createOrderEvent nozama.CreateOrderEvent) error {
 	err := nozama.PutItem(paymentItem, nozama.PaymentsDynamoDBTableName)
 
 	if err != nil {
-		log.Fatalf("An error ocurred while placing order %s", err)
+		log.Printf("CreatePayment: %s", err)
 		return err
 	}
 

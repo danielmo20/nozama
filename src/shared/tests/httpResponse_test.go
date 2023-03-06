@@ -1,4 +1,4 @@
-package main
+package nozama
 
 import (
 	nozama "nozama/src/shared"
