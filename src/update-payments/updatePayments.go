@@ -17,7 +17,7 @@ func main() {
 }
 
 func handleUpdatePayment(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	var httpErrorMessage = nozama.HttpMessageResponse{Message: "An error occured trying to update the payment"}
+	var httpErrorMessage = nozama.HttpMessageResponse{Message: "An error ocurred trying to update the payment"}
 
 	if req.HTTPMethod != http.MethodPatch {
 		return nozama.HttpResponse(http.StatusBadRequest, httpErrorMessage)
@@ -51,6 +51,12 @@ func UpdatePayment(paymentRequest nozama.ProcessPaymentRequest) (nozama.UpdatedP
 
 	if err != nil {
 		log.Printf("UpdatePayment: An error ocurred while retrieving payment. Error: %s", err)
+		return nozama.UpdatedPaymentEvent{}, err
+	}
+
+	if paymentRequest.Status != nozama.PaymentStatusSuccess && paymentRequest.Status != nozama.PaymentStatusRejected {
+		log.Printf("UpdatePayment: Payment status %s invalid", paymentRequest.Status)
+		err = errors.New("invald payment status")
 		return nozama.UpdatedPaymentEvent{}, err
 	}
 
