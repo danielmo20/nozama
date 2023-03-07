@@ -1,0 +1,153 @@
+{
+	"info": {
+		"_postman_id": "acbef25c-3a06-4980-9003-335062526c29",
+		"name": "nozama",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "createOrder",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var orderEvent = pm.response.json();\r",
+							"\r",
+							"pm.collectionVariables.set(\"orderID\", orderEvent.order_id);\r",
+							"\r",
+							"pm.test(\"Successful POST request\", function () {\r",
+							"    pm.expect(pm.response.code).to.be.eql(201);\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"user_id\": \"danielmo\",\r\n    \"item\": \"B07QQ396NH\",\r\n    \"quantity\": 1,\r\n    \"total_price\": 786400\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://{{api-id}}.execute-api.us-east-2.amazonaws.com/dev/orders",
+					"protocol": "https",
+					"host": [
+						"{{api-id}}",
+						"execute-api",
+						"us-east-2",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "updatePayment - success",
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"order_id\": \"{{orderID}}\",\r\n    \"status\": \"success\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://{{api-id}}.execute-api.us-east-2.amazonaws.com/dev/payments",
+					"protocol": "https",
+					"host": [
+						"{{api-id}}",
+						"execute-api",
+						"us-east-2",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"payments"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "updatePayment - rejected",
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"order_id\": \"{{orderID}}\",\r\n    \"status\": \"rejected\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://{{api-id}}.execute-api.us-east-2.amazonaws.com/dev/payments",
+					"protocol": "https",
+					"host": [
+						"{{api-id}}",
+						"execute-api",
+						"us-east-2",
+						"amazonaws",
+						"com"
+					],
+					"path": [
+						"dev",
+						"payments"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "orderID",
+			"value": ""
+		},
+		{
+			"key": "api-id",
+			"value": "",
+			"type": "default"
+		}
+	]
+}
